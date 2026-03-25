@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>掲示板</title>
+</head>
+<body>
+
+<h1>スレ一覧</h1>
+
+<input id="title" placeholder="スレタイトル">
+<button onclick="createThread()">作成</button>
+
+<ul id="threads"></ul>
+
+<script>
+async function load() {
+  const res = await fetch("/api/threads");
+  const threads = await res.json();
+
+  const ul = document.getElementById("threads");
+  ul.innerHTML = "";
+
+  threads.forEach(t => {
+    const li = document.createElement("li");
+
+    // 作成時間
+    const date = new Date(t.id).toLocaleString();
+
+    li.innerHTML = `
+      <a href="thread.html?id=${t.id}">
+        ${t.title}
+      </a>
+      (${date}) [${t.posts.length}]
+    `;
+
+    ul.appendChild(li);
+  });
+}
+
+async function createThread() {
+  const title = document.getElementById("title").value;
+
+  // 空タイトル防止
+  if (!title.trim()) {
+    alert("タイトルを入力してください");
+    return;
+  }
+
+  const res = await fetch("/api/thread", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ title })
+  });
+
+  const data = await res.json();
+
+  if (data.error) {
+    alert(data.error);
+    return;
+  }
+
+  document.getElementById("title").value = "";
+  load();
+}
+
+load();
+</script>
+
+</body>
+</html>

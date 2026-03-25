@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>スレ</title>
+  <style>
+    .id {
+      font-weight: bold;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<h1 id="title"></h1>
+
+<ul id="posts"></ul>
+
+<input id="name" placeholder="名前（任意）">
+<input id="text" placeholder="書き込み">
+<button onclick="post()">送信</button>
+
+<script>
+const params = new URLSearchParams(location.search);
+const id = params.get("id");
+
+// --- ID→色変換 ---
+function getColorFromId(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  const hue = hash % 360;
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
+async function load() {
+  const res = await fetch("/api/thread/" + id);
+  const thread = await res.json();
+
+  document.getElementById("title").textContent = thread.title;
+
+  const ul = document.getElementById("posts");
+  ul.innerHTML = "";
+
+  thread.posts.forEach((p, i) => {
+    const li = document.createElement("li");
+
+    const color = getColorFromId(p.id);
+
+    li.innerHTML = `
+      ${i+1} 名前:${p.name}
+      <span class="id" style="color:${color}">ID:${p.id}</span>
+      ${p.text}
+    `;
+
+    ul.appendChild(li);
+  });
+}
+
+async function post() {
+  const text = document.getElementById("text").value;
+  const name = document.getElementById("name").value;
+
+  const res = await fetch("/api/post", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ threadId: id, text, name })
+  });
+
+  const data = await res.json();
+  if (data.error) alert(data.error);
+
+  document.getElementById("text").value = "";
+  load();
+}
+
+load();
+setInterval(load, 5000);
+</script>
+
+</body>
+</html>
